@@ -5,7 +5,7 @@ var TemperatureUnit = {
 }
 
 function toFahrenheit(celsia) {
-    return celsia * (9/5) + 32
+    return celsia * (9 / 5) + 32
 }
 
 function toKelvin(celsia) {
@@ -14,7 +14,12 @@ function toKelvin(celsia) {
 
 function getTemperatureStr(celsiaDouble, temperatureUnit) {
     dbgprint('temp unit: ' + temperatureUnit)
-    return getTemperature(celsiaDouble, temperatureUnit) + (temperatureUnit === TemperatureUnit.CELSIUS || temperatureUnit === TemperatureUnit.FAHRENHEIT ? '°' : '')
+    return (
+        getTemperature(celsiaDouble, temperatureUnit) +
+        (temperatureUnit === TemperatureUnit.CELSIUS || temperatureUnit === TemperatureUnit.FAHRENHEIT
+            ? '°'
+            : '')
+    )
 }
 
 function getTemperature(celsiaDouble, temperatureUnit) {

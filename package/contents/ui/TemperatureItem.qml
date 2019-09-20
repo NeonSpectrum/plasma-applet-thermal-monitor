@@ -18,6 +18,7 @@ import QtQuick 2.2
 import QtQuick.Layouts 1.1
 import QtGraphicalEffects 1.0
 import org.kde.plasma.components 2.0 as PlasmaComponents
+import org.kde.plasma.core 2.0 as PlasmaCore
 import "../code/temperature-utils.js" as TemperatureUtils
 
 Item {
@@ -73,13 +74,13 @@ Item {
             anchors.rightMargin: temperatureRightMargin
             anchors.verticalCenter: aliasText.text === '' ? parent.verticalCenter : undefined
 
-            font.pixelSize: temperatureFontSize * (isOff ? 0.7 : 1)
+            font.pixelSize: temperatureFontSize
             font.pointSize: -1
-            verticalAlignment: Text.AlignBottom
+            //verticalAlignment: Text.AlignBottom
 
             opacity: isOff ? 0.7 : 1
 
-            text: isOff ? i18n('OFF') : TemperatureUtils.getTemperatureStr(temperature, temperatureUnit)
+            text: isOff ? "N/A" : TemperatureUtils.getTemperatureStr(temperature, temperatureUnit) + "C"
         }
     }
 
@@ -91,6 +92,17 @@ Item {
         color: theme.backgroundColor
         source: labels
         visible: enableLabelDropShadow
+    }
+
+    PlasmaCore.ToolTipArea {
+        anchors.fill: parent
+        icon: Qt.resolvedUrl('../images/thermal-monitor.svg').replace('file://', '')
+        mainText: alias
+        subText: {
+            return `
+            Min Temp: <b>${minTemperature}°C</b><br/>
+            Max Temp: <b>${maxTemperature}°C</b>`
+        }
     }
 
 }

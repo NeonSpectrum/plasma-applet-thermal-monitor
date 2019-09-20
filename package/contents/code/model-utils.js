@@ -34,14 +34,20 @@ var exampleObject2 = {
  * Fill temperatureModel with "resources" configuration string.
  */
 function initModels(savedSourceObjects, temperatureModel) {
-    savedSourceObjects.forEach(function (savedSourceObj) {
+    savedSourceObjects.forEach(function(savedSourceObj) {
         var newObject = {
             sourceName: savedSourceObj.sourceName,
             alias: savedSourceObj.alias,
             temperature: 0,
+            minTemperature: 0,
+            maxTemperature: 0,
             overrideLimitTemperatures: savedSourceObj.overrideLimitTemperatures,
-            warningTemperature: savedSourceObj.overrideLimitTemperatures ? savedSourceObj.warningTemperature : baseWarningTemperature,
-            meltdownTemperature: savedSourceObj.overrideLimitTemperatures ? savedSourceObj.meltdownTemperature : baseMeltdownTemperature,
+            warningTemperature: savedSourceObj.overrideLimitTemperatures
+                ? savedSourceObj.warningTemperature
+                : baseWarningTemperature,
+            meltdownTemperature: savedSourceObj.overrideLimitTemperatures
+                ? savedSourceObj.meltdownTemperature
+                : baseMeltdownTemperature,
             virtual: savedSourceObj.virtual,
             childSourceObjects: savedSourceObj.childSourceObjects || {}
         }
@@ -52,7 +58,7 @@ function initModels(savedSourceObjects, temperatureModel) {
 
 /*
  * Build map for optimizing temperature updating.
- * 
+ *
  * Must be explicitly called in Component.onCompleted method and after that add all sources to engines to start whipping data.
  */
 function rebuildModelIndexByKey(existingModel) {
@@ -82,35 +88,37 @@ function addToListInMap(map, key, addObject) {
  * Sets temperature to existing temperatureModel -> triggers virtual temperature computation and visual update.
  */
 function updateTemperatureModel(existingModel, sourceName, temperature) {
-    
     var temperatureToSet = temperature
-    
+
     var indexes = modelIndexesBySourceName[sourceName] || []
-    
-    indexes.forEach(function (index) {
-        
+
+    indexes.forEach(function(index) {
         // try to set virtual temperature
         var currentObj = existingModel.get(index)
         if (currentObj.virtual) {
-            
             dbgprint('setting partial virtual temperature: ' + temperature + ', index=' + index)
-            
+
             var cachedObject = virtualObjectMapByIndex[index] || {}
             virtualObjectMapByIndex[index] = cachedObject
             cachedObject[sourceName] = {
                 temperature: temperature
             }
-            
+
             return
         }
-        
-        dbgprint('setting property temperature to ' + temperatureToSet + ', sourceName=' + sourceName + ', index=' + index)
-        
+
+        dbgprint(
+            'setting property temperature to ' +
+                temperatureToSet +
+                ', sourceName=' +
+                sourceName +
+                ', index=' +
+                index
+        )
+
         // update model
         setTemperatureToExistingModel(existingModel, index, temperatureToSet)
-        
     })
-    
 }
 
 function computeVirtuals(existingModel) {
@@ -119,7 +127,14 @@ function computeVirtuals(existingModel) {
         var temperatureToSet = getHighestFromVirtuals(cachedObject)
         var modelObj = existingModel.get(index)
         dbgprint('setting property temperature to ' + temperatureToSet + ', group alias=' + modelObj.alias)
-        
+
+        if (modelObj.minTemperature == 0 || modelObj.minTemperature > temperatureToSet) {
+            modelObj.minTemperature = temperatureToSet
+        }
+        if (modelObj.maxTemperature < temperatureToSet) {
+            modelObj.maxTemperature = temperatureToSet
+        }
+
         // update model
         setTemperatureToExistingModel(existingModel, index, temperatureToSet)
     }
@@ -132,9 +147,9 @@ function getHighestFromVirtuals(childSourceObjects) {
         dbgprint('iterating over virtual: ' + sourceName + ', temp: ' + newTemperture)
         if (newTemperture > maxTemperature) {
             maxTemperature = newTemperture
-        } 
+        }
     }
-    return maxTemperature;
+    return maxTemperature
 }
 
 function setTemperatureToExistingModel(existingModel, index, temperatureToSet) {
@@ -144,14 +159,15 @@ function setTemperatureToExistingModel(existingModel, index, temperatureToSet) {
 var UDISKS_VIRTUAL_PATH_PREFIX = 'udisks/'
 var UDISKS_PATH_START_WITH = '/org/freedesktop/UDisks2/drives/'
 var UDISKS_DEVICES_CMD = 'qdbus --system org.freedesktop.UDisks2 | grep ' + UDISKS_PATH_START_WITH
-var UDISKS_TEMPERATURE_CMD_PATTERN = 'qdbus --system org.freedesktop.UDisks2 {path} org.freedesktop.UDisks2.Drive.Ata.SmartTemperature'
+var UDISKS_TEMPERATURE_CMD_PATTERN =
+    'qdbus --system org.freedesktop.UDisks2 {path} org.freedesktop.UDisks2.Drive.Ata.SmartTemperature'
 
 function parseUdisksPaths(udisksPaths) {
     var deviceStrings = udisksPaths.split('\n')
     var resultObjects = []
-    
+
     if (deviceStrings) {
-        deviceStrings.forEach(function (path) {
+        deviceStrings.forEach(function(path) {
             if (path) {
                 resultObjects.push({
                     cmd: UDISKS_TEMPERATURE_CMD_PATTERN.replace('{path}', path),
@@ -160,7 +176,7 @@ function parseUdisksPaths(udisksPaths) {
             }
         })
     }
-    
+
     return resultObjects
 }
 
